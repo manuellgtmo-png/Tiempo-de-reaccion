@@ -3,197 +3,186 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema Clínico de Reacción Pro</title>
+    <title>Terapia Visual - Reacción Pro (5 Intentos)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --bg: #2c3e50; --red: #e74c3c; --green: #2ecc71; --blue: #3498db; --text: white; }
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; min-height: 100vh; transition: background 0.2s; overflow: hidden; }
+        :root { --bg: #0f172a; --card: #1e293b; --accent: #f59e0b; --text: #f8fafc; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         
-        /* Navegación y Ajustes */
-        .header-nav { width: 100%; display: flex; justify-content: flex-end; padding: 10px; gap: 10px; z-index: 10; }
-        .btn-icon { background: rgba(255,255,255,0.1); border: 1px solid white; color: white; padding: 8px; border-radius: 5px; cursor: pointer; font-size: 1.2rem; }
-        
-        .config-panel { display: none; position: absolute; top: 60px; right: 10px; background: white; color: #333; padding: 15px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); width: 200px; }
+        #login-screen { position: fixed; inset: 0; background: var(--bg); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .input-clinico { padding: 15px; font-size: 1.2rem; border-radius: 10px; border: 2px solid var(--accent); background: #1e293b; color: white; margin-bottom: 20px; text-align: center; width: 280px; }
 
-        .game-container { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; cursor: pointer; }
-        .panel-info { background: rgba(0,0,0,0.4); padding: 30px; border-radius: 20px; text-align: center; max-width: 90%; pointer-events: none; }
-        
-        /* Panel Profesional */
-        #admin-section { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f8f9fa; color: #333; overflow-y: auto; padding: 25px; box-sizing: border-box; z-index: 100; }
-        .admin-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; margin-bottom: 20px; }
-        
-        .btn-print { background: var(--blue); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        table { width: 100%; border-collapse: collapse; background: white; margin-top: 15px; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-        th { background: var(--blue); color: white; }
+        .controles-modo { margin: 20px; display: flex; gap: 10px; }
+        .btn-modo { padding: 8px 15px; border-radius: 8px; border: 1px solid white; background: transparent; color: white; cursor: pointer; }
+        .btn-modo.active { background: white; color: var(--bg); }
 
-        @media print {
-            .header-nav, .config-panel, .admin-header button, .btn-print { display: none !important; }
-            #admin-section { position: relative; display: block !important; padding: 0; }
-        }
+        #game-area { width: 300px; height: 300px; border-radius: 50%; margin: 20px auto; cursor: pointer; display: flex; align-items: center; justify-content: center; position: relative; border: 4px solid #334155; transition: 0.1s; }
+        .color-neutro { background: #334155; }
+
+        #admin-panel { display: none; position: fixed; inset: 0; background: #f1f5f9; color: #1e293b; z-index: 2000; padding: 30px; overflow-y: auto; }
+        .btn-admin { position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.1); border: 1px solid white; color: white; padding: 5px 10px; cursor: pointer; font-size: 0.8rem; }
+
+        #game-ui { display: none; text-align: center; width: 100%; }
+        .stats-bar { font-size: 1.1rem; margin-bottom: 10px; color: var(--accent); }
+        .btn-accion { background: var(--accent); color: white; border: none; padding: 15px 30px; border-radius: 12px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div class="header-nav">
-        <button class="btn-icon" onclick="toggleConfig()">⚙️</button>
-        <button class="btn-icon" style="font-size: 0.9rem;" onclick="accesoProfesional()">Área Profesional</button>
+    <button class="btn-admin" onclick="abrirAdmin()">Área Profesional</button>
+
+    <div id="login-screen">
+        <h2 style="color: var(--accent);">Registro de Paciente</h2>
+        <p>Tiempo de Reacción Visual</p>
+        <input type="text" id="nombrePaciente" class="input-clinico" placeholder="Nombre completo">
+        <button class="btn-accion" onclick="iniciar()">Empezar Terapia</button>
     </div>
 
-    <div id="config-panel" class="config-panel">
-        <strong>Configuración</strong>
-        <hr>
-        <label>Modo Visual:</label>
-        <select id="colorMode" onchange="cambiarModo()">
-            <option value="clasico">Clásico (Rojo/Verde)</option>
-            <option value="contraste">Contraste (Negro/Blanco)</option>
-            <option value="daltonico">Daltónico (Azul/Amarillo)</option>
-        </select>
-        <br><br>
-        <label><input type="checkbox" id="soundToggle" checked> Sonido al activarse</label>
-    </div>
+    <div id="game-ui">
+        <div class="controles-modo">
+            <button class="btn-modo active" onclick="setModo('std', this)">Rojo/Verde</button>
+            <button class="btn-modo" onclick="setModo('disc', this)">Azul/Amarillo</button>
+            <button class="btn-modo" onclick="setModo('bw', this)">Blanco/Negro</button>
+        </div>
 
-    <div class="game-container" id="area-juego" onclick="manejarClic()">
-        <div class="panel-info">
-            <h1 id="mensaje">Tiempo de Reacción</h1>
-            <p id="instruccion">Toca para comenzar</p>
-            <h2 id="cronometro" style="font-size: 3rem;">0 ms</h2>
+        <div class="stats-bar">Intento: <span id="intento-num">0</span>/5 | Promedio: <span id="prom-actual">0</span> ms</div>
+        <h1 id="resultado-ms">0 ms</h1>
+        <p id="mensaje">Toca el círculo para iniciar</p>
+
+        <div id="game-area" class="color-neutro" onclick="handleClick()">
+            <span id="label-area" style="font-weight:bold;">INICIAR</span>
         </div>
     </div>
 
-    <div id="admin-section">
-        <div class="admin-header">
-            <h2>Expedientes Clínicos</h2>
-            <button class="btn-icon" style="background:var(--red); border:none;" onclick="cerrarAdmin()">Cerrar</button>
+    <div id="admin-panel">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #ccc;">
+            <h2>Historial Clínico - Tiempo de Reacción</h2>
+            <button onclick="cerrarAdmin()" style="padding:10px; background:#ef4444; color:white; border:none; border-radius:5px;">Cerrar</button>
         </div>
-        <select id="pacienteSelect" onchange="actualizarVistaAdmin()" style="padding:10px; width:100%; margin-bottom:20px;">
-            <option value="">-- Seleccionar Paciente --</option>
-        </select>
-        <div id="datosPaciente" style="display:none;">
-            <button class="btn-print" onclick="window.print()">Exportar PDF / Imprimir</button>
-            <canvas id="progresoChart" style="margin:20px 0;"></canvas>
-            <table id="tabla-records">
-                <thead><tr><th>Fecha</th><th>Hora</th><th>Tiempo (ms)</th></tr></thead>
-                <tbody></tbody>
-            </table>
-        </div>
+        <canvas id="graficoReaccion" style="max-height: 300px; margin-top:20px;"></canvas>
+        <table width="100%" border="1" style="margin-top:20px; border-collapse: collapse; background: white;">
+            <thead><tr style="background:#f59e0b; color:white;"><th>Fecha</th><th>Paciente</th><th>Promedio (ms)</th></tr></thead>
+            <tbody id="tablaBody"></tbody>
+        </table>
     </div>
 
     <script>
-        let estado = "INICIO", startTime, timeout, chart;
-        let c_rojo = "#e74c3c", c_verde = "#2ecc71", c_neutro = "#2c3e50";
+        let paciente = "", state = "IDLE", modo = "std", intentos = [], startTime, timeoutId;
+        const area = document.getElementById('game-area');
+        const msg = document.getElementById('mensaje');
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        function beep() {
-            if (!document.getElementById('soundToggle').checked) return;
+        // Enlace de tu tercer formulario
+        const formURL = "https://docs.google.com/forms/d/e/1FAIpQLSfL1u3T8Xqn_pEEhQlnjJmoCu5DOLnQc0ixRLtba8WgLnniyw/formResponse";
+
+        const colores = {
+            std: { espera: "#ef4444", go: "#22c55e" },
+            disc: { espera: "#3b82f6", go: "#eab308" },
+            bw: { espera: "#000000", go: "#ffffff" }
+        };
+
+        function playClick() {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.frequency.value = 880; gain.gain.value = 0.1;
-            osc.start(); setTimeout(() => osc.stop(), 100);
+            osc.frequency.value = 800; gain.gain.value = 0.1;
+            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
         }
 
-        function cambiarModo() {
-            let modo = document.getElementById('colorMode').value;
-            if (modo === "clasico") { c_rojo = "#e74c3c"; c_verde = "#2ecc71"; c_neutro = "#2c3e50"; }
-            else if (modo === "contraste") { c_rojo = "#000000"; c_verde = "#ffffff"; c_neutro = "#333333"; }
-            else { c_rojo = "#3498db"; c_verde = "#f1c40f"; c_neutro = "#2c3e50"; }
-            document.body.style.backgroundColor = c_neutro;
+        function iniciar() {
+            paciente = document.getElementById('nombrePaciente').value.trim();
+            if(paciente.length < 3) return alert("Nombre requerido");
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('game-ui').style.display = 'block';
         }
 
-        function toggleConfig() {
-            let p = document.getElementById('config-panel');
-            p.style.display = p.style.display === 'block' ? 'none' : 'block';
+        function setModo(m, btn) {
+            modo = m;
+            document.querySelectorAll('.btn-modo').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            resetTest();
         }
 
-        function manejarClic() {
-            if (estado === "INICIO" || estado === "RESULTADO") preparar();
-            else if (estado === "ESPERA") penalizar();
-            else if (estado === "ESTIMULO") finalizar();
+        function handleClick() {
+            if (state === "IDLE") startWaiting();
+            else if (state === "WAITING") penalizar();
+            else if (state === "GO") registrarIntento(Date.now() - startTime);
         }
 
-        function preparar() {
-            estado = "ESPERA";
-            document.body.style.backgroundColor = c_rojo;
-            document.getElementById('mensaje').innerText = "¡Atento!";
-            timeout = setTimeout(() => {
-                estado = "ESTIMULO";
-                document.body.style.backgroundColor = c_verde;
-                if (document.getElementById('colorMode').value === "contraste") document.body.style.color = "black";
-                else document.body.style.color = "white";
-                document.getElementById('mensaje').innerText = "¡YA!";
-                beep();
-                startTime = performance.now();
-            }, Math.floor(Math.random() * 3000) + 2000);
+        function startWaiting() {
+            state = "WAITING";
+            area.style.backgroundColor = colores[modo].espera;
+            document.getElementById('label-area').innerText = "";
+            msg.innerText = "¡Espera al cambio!";
+            const delay = Math.random() * 3000 + 2000;
+            timeoutId = setTimeout(() => {
+                state = "GO";
+                area.style.backgroundColor = colores[modo].go;
+                playClick();
+                startTime = Date.now();
+            }, delay);
         }
 
         function penalizar() {
-            clearTimeout(timeout); estado = "RESULTADO";
-            document.body.style.backgroundColor = c_neutro;
-            document.body.style.color = "white";
-            document.getElementById('mensaje').innerText = "¡Muy pronto!";
+            clearTimeout(timeoutId);
+            state = "IDLE";
+            area.style.backgroundColor = "#334155";
+            document.getElementById('label-area').innerText = "ERROR";
+            msg.innerText = "¡Tocaste antes de tiempo! Reintenta.";
+            setTimeout(resetTest, 1000);
         }
 
-        function finalizar() {
-            let tiempo = Math.round(performance.now() - startTime);
-            estado = "RESULTADO";
-            document.body.style.backgroundColor = c_neutro;
-            document.body.style.color = "white";
-            document.getElementById('mensaje').innerText = tiempo + " ms";
-            guardarDato(tiempo);
-        }
+        function registrarIntento(ms) {
+            state = "IDLE";
+            intentos.push(ms);
+            document.getElementById('resultado-ms').innerText = ms + " ms";
+            document.getElementById('intento-num').innerText = intentos.length;
+            
+            let suma = intentos.reduce((a, b) => a + b, 0);
+            let promedio = Math.round(suma / intentos.length);
+            document.getElementById('prom-actual').innerText = promedio;
 
-        function guardarDato(ms) {
-            let nombre = prompt("Nombre del Paciente:") || "Anónimo";
-            let registros = JSON.parse(localStorage.getItem('db_reaccion') || "[]");
-            registros.push({
-                nombre: nombre.trim().toUpperCase(),
-                fecha: new Date().toLocaleDateString(),
-                hora: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-                tiempo: ms
-            });
-            localStorage.setItem('db_reaccion', JSON.stringify(registros));
-        }
-
-        function accesoProfesional() {
-            if (prompt("Clave:") === "1234") {
-                document.getElementById('admin-section').style.display = 'block';
-                poblarSelect();
+            if (intentos.length === 5) {
+                msg.innerText = "¡Sesión completada!";
+                enviarResultados(promedio);
+                intentos = [];
+                document.getElementById('label-area').innerText = "FIN";
+            } else {
+                area.style.backgroundColor = "#334155";
+                document.getElementById('label-area').innerText = "SIGUIENTE";
+                msg.innerText = "Toca para el siguiente intento.";
             }
         }
 
-        function poblarSelect() {
-            let registros = JSON.parse(localStorage.getItem('db_reaccion') || "[]");
-            let nombres = [...new Set(registros.map(r => r.nombre))];
-            let select = document.getElementById('pacienteSelect');
-            select.innerHTML = '<option value="">-- Seleccionar Paciente --</option>';
-            nombres.forEach(n => {
-                let opt = document.createElement('option');
-                opt.value = n; opt.innerText = n;
-                select.appendChild(opt);
-            });
+        function enviarResultados(prom) {
+            let h = JSON.parse(localStorage.getItem('h_reaccion_pro') || "[]");
+            h.push({ nombre: paciente, fecha: new Date().toLocaleDateString(), prom: prom });
+            localStorage.setItem('h_reaccion_pro', JSON.stringify(h));
+
+            const fd = new FormData();
+            // IDs de entrada para tu tercer formulario
+            fd.append("entry.2096898436", paciente); 
+            fd.append("entry.441865910", prom);    
+            fetch(formURL, { method: "POST", mode: "no-cors", body: fd });
+            alert("Sesión finalizada. Promedio enviado: " + prom + " ms");
         }
 
-        function actualizarVistaAdmin() {
-            let nombreSel = document.getElementById('pacienteSelect').value;
-            let container = document.getElementById('datosPaciente');
-            if (!nombreSel) { container.style.display = 'none'; return; }
-            container.style.display = 'block';
-            let filtrados = JSON.parse(localStorage.getItem('db_reaccion')).filter(r => r.nombre === nombreSel);
-            document.querySelector("#tabla-records tbody").innerHTML = filtrados.reverse().map(r => `<tr><td>${r.fecha}</td><td>${r.hora}</td><td>${r.tiempo} ms</td></tr>`).join('');
-            
-            if (chart) chart.destroy();
-            chart = new Chart(document.getElementById('progresoChart'), {
-                type: 'line',
-                data: {
-                    labels: filtrados.map(r => r.fecha).reverse(),
-                    datasets: [{ label: 'Velocidad (ms)', data: filtrados.map(r => r.tiempo).reverse(), borderColor: '#3498db' }]
-                },
-                options: { animation: false }
-            });
+        function resetTest() {
+            state = "IDLE";
+            area.style.backgroundColor = "#334155";
+            document.getElementById('label-area').innerText = "INICIAR";
+            msg.innerText = "Toca el círculo";
         }
 
-        function cerrarAdmin() { document.getElementById('admin-section').style.display = 'none'; }
+        function abrirAdmin() {
+            if(prompt("Clave Profesional:") === "1234") {
+                document.getElementById('admin-panel').style.display = 'block';
+                const h = JSON.parse(localStorage.getItem('h_reaccion_pro') || "[]");
+                document.getElementById('tablaBody').innerHTML = h.reverse().map(d => `<tr><td>${d.fecha}</td><td>${d.nombre}</td><td>${d.prom} ms</td></tr>`).join('');
+            }
+        }
+        function cerrarAdmin() { document.getElementById('admin-panel').style.display = 'none'; }
     </script>
 </body>
 </html>
+
