@@ -8,20 +8,14 @@
     <style>
         :root { --bg: #0f172a; --card: #1e293b; --accent: #f59e0b; --text: #f8fafc; }
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
-        
         #login-screen { position: fixed; inset: 0; background: var(--bg); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .input-clinico { padding: 15px; font-size: 1.2rem; border-radius: 10px; border: 2px solid var(--accent); background: #1e293b; color: white; margin-bottom: 20px; text-align: center; width: 280px; }
-
         .controles-modo { margin: 20px; display: flex; gap: 10px; }
         .btn-modo { padding: 8px 15px; border-radius: 8px; border: 1px solid white; background: transparent; color: white; cursor: pointer; }
         .btn-modo.active { background: white; color: var(--bg); }
-
-        #game-area { width: 300px; height: 300px; border-radius: 50%; margin: 20px auto; cursor: pointer; display: flex; align-items: center; justify-content: center; position: relative; border: 4px solid #334155; transition: 0.1s; }
-        .color-neutro { background: #334155; }
-
+        #game-area { width: 300px; height: 300px; border-radius: 50%; margin: 20px auto; cursor: pointer; display: flex; align-items: center; justify-content: center; position: relative; border: 4px solid #334155; transition: 0.1s; background: #334155; }
         #admin-panel { display: none; position: fixed; inset: 0; background: #f1f5f9; color: #1e293b; z-index: 2000; padding: 30px; overflow-y: auto; }
         .btn-admin { position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.1); border: 1px solid white; color: white; padding: 5px 10px; cursor: pointer; font-size: 0.8rem; }
-
         #game-ui { display: none; text-align: center; width: 100%; }
         .stats-bar { font-size: 1.1rem; margin-bottom: 10px; color: var(--accent); }
         .btn-accion { background: var(--accent); color: white; border: none; padding: 15px 30px; border-radius: 12px; cursor: pointer; font-weight: bold; }
@@ -44,18 +38,16 @@
             <button class="btn-modo" onclick="setModo('disc', this)">Azul/Amarillo</button>
             <button class="btn-modo" onclick="setModo('bw', this)">Blanco/Negro</button>
         </div>
-
         <div class="stats-bar">Intento: <span id="intento-num">0</span>/5 | Promedio: <span id="prom-actual">0</span> ms</div>
         <h1 id="resultado-ms">0 ms</h1>
         <p id="mensaje">Toca el círculo para iniciar</p>
-
-        <div id="game-area" class="color-neutro" onclick="handleClick()">
-            <span id="label-area" style="font-weight:bold;">INICIAR</span>
+        <div id="game-area" onclick="handleClick()">
+            <span id="label-area" style="font-weight:bold; pointer-events:none;">INICIAR</span>
         </div>
     </div>
 
     <div id="admin-panel">
-        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #ccc;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
             <h2>Historial Clínico - Tiempo de Reacción</h2>
             <button onclick="cerrarAdmin()" style="padding:10px; background:#ef4444; color:white; border:none; border-radius:5px;">Cerrar</button>
         </div>
@@ -71,9 +63,11 @@
         const area = document.getElementById('game-area');
         const msg = document.getElementById('mensaje');
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-        // Enlace de tu tercer formulario
+        
+        // IDs ACTUALIZADOS SEGÚN TU LINK PRELLENADO
         const formURL = "https://docs.google.com/forms/d/e/1FAIpQLSfL1u3T8Xqn_pEEhQlnjJmoCu5DOLnQc0ixRLtba8WgLnniyw/formResponse";
+        const entryNombre = "entry.565202054";
+        const entryPromedio = "entry.276239328";
 
         const colores = {
             std: { espera: "#ef4444", go: "#22c55e" },
@@ -82,11 +76,13 @@
         };
 
         function playClick() {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.frequency.value = 800; gain.gain.value = 0.1;
-            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.frequency.value = 800; gain.gain.value = 0.1;
+                osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+            } catch(e) {}
         }
 
         function iniciar() {
@@ -94,6 +90,7 @@
             if(paciente.length < 3) return alert("Nombre requerido");
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('game-ui').style.display = 'block';
+            if (audioCtx.state === 'suspended') audioCtx.resume();
         }
 
         function setModo(m, btn) {
@@ -128,7 +125,7 @@
             state = "IDLE";
             area.style.backgroundColor = "#334155";
             document.getElementById('label-area').innerText = "ERROR";
-            msg.innerText = "¡Tocaste antes de tiempo! Reintenta.";
+            msg.innerText = "¡Demasiado pronto! Reintenta.";
             setTimeout(resetTest, 1000);
         }
 
@@ -150,7 +147,7 @@
             } else {
                 area.style.backgroundColor = "#334155";
                 document.getElementById('label-area').innerText = "SIGUIENTE";
-                msg.innerText = "Toca para el siguiente intento.";
+                msg.innerText = "Toca el círculo para el próximo intento.";
             }
         }
 
@@ -160,11 +157,13 @@
             localStorage.setItem('h_reaccion_pro', JSON.stringify(h));
 
             const fd = new FormData();
-            // IDs de entrada para tu tercer formulario
-            fd.append("entry.2096898436", paciente); 
-            fd.append("entry.441865910", prom);    
-            fetch(formURL, { method: "POST", mode: "no-cors", body: fd });
-            alert("Sesión finalizada. Promedio enviado: " + prom + " ms");
+            fd.append(entryNombre, paciente); 
+            fd.append(entryPromedio, prom);    
+            fetch(formURL, { method: "POST", mode: "no-cors", body: fd })
+                .then(() => {
+                    alert("¡Éxito! Promedio de " + prom + " ms guardado en tu nube.");
+                })
+                .catch(() => alert("Error al enviar. Revisa tu conexión."));
         }
 
         function resetTest() {
