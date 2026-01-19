@@ -3,47 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tiempo de Reacción - Terapia Visual</title>
+    <title>Reacción - Terapia Visual</title>
     <style>
-        :root { --bg: #0f172a; --accent: #38bdf8; }
+        :root { --bg: #0f172a; --accent: #38bdf8; --card: #1e293b; }
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg); color: white; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
-        #setup-screen, #instruction-screen { position: fixed; inset: 0; background: var(--bg); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
-        .input-clinico { padding: 12px; font-size: 1rem; border-radius: 8px; border: 2px solid var(--accent); background: #1e293b; color: white; margin: 10px; width: 280px; }
+        
+        /* Pantallas */
+        #setup-screen, #admin-panel, #msg-screen { position: fixed; inset: 0; background: var(--bg); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
+        
+        .input-clinico { padding: 12px; font-size: 1rem; border-radius: 8px; border: 2px solid var(--accent); background: var(--card); color: white; margin: 10px; width: 280px; }
         .btn-grande { background: var(--accent); color: #0f172a; padding: 15px 35px; border-radius: 12px; font-size: 1.5rem; font-weight: bold; cursor: pointer; border: none; margin-top: 20px; }
-        .header { padding: 10px; border-bottom: 1px solid #334155; width: 100%; text-align: center; background: rgba(15, 23, 42, 0.9); }
-        #game-canvas { position: relative; width: 100vw; height: calc(100vh - 80px); }
-        .target { position: absolute; width: 80px; height: 80px; border-radius: 50%; display: none; cursor: pointer; transform: translate(-50%, -50%); box-shadow: 0 0 20px rgba(255,255,255,0.3); }
+        .btn-admin { position: absolute; top: 10px; right: 10px; background: none; border: 1px solid white; color: white; cursor: pointer; font-size: 0.7rem; z-index: 2000; opacity: 0.5; }
+
+        /* Juego */
+        .header { padding: 15px; border-bottom: 1px solid #334155; width: 100%; text-align: center; background: rgba(15,23,42,0.9); box-sizing: border-box; }
+        #target { position: absolute; width: 85px; height: 85px; border-radius: 50%; display: none; cursor: pointer; transform: translate(-50%, -50%); box-shadow: 0 0 20px rgba(255,255,255,0.2); }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9rem; }
+        th, td { border: 1px solid #334155; padding: 8px; }
     </style>
 </head>
 <body>
+    <button class="btn-admin" onclick="abrirAdmin()">Área Profesional</button>
+
     <div id="setup-screen">
         <h1 style="color:var(--accent)">TIEMPO DE REACCIÓN</h1>
         <input type="text" id="nombrePaciente" class="input-clinico" placeholder="Nombre del Paciente">
-        <button class="btn-grande" onclick="irAInstrucciones()">Siguiente</button>
+        <button class="btn-grande" onclick="iniciarJuego()">Iniciar Sesión</button>
     </div>
-    <div id="instruction-screen" style="display:none">
-        <h2 style="color:var(--accent)">Instrucciones</h2>
-        <p>Toca los círculos lo más rápido posible.<br>La sesión termina a los 10 aciertos.</p>
-        <button class="btn-grande" onclick="comenzarJuego()">¡Empezar!</button>
+
+    <div id="admin-panel" style="display:none">
+        <h2 style="color:var(--accent)">Historial de Sesiones</h2>
+        <div style="width: 100%; max-width: 500px; max-height: 300px; overflow-y: auto; background: var(--card); padding: 10px; border-radius: 10px;">
+            <table>
+                <thead><tr><th>Fecha</th><th>Paciente</th><th>Promedio</th></tr></thead>
+                <tbody id="cuerpoTabla"></tbody>
+            </table>
+        </div>
+        <button class="btn-grande" onclick="cerrarAdmin()" style="font-size:1rem">Cerrar</button>
     </div>
+
     <div class="header">
-        <span>Paciente: <b id="val-pac">---</b></span> | <span>Promedio: <b id="val-avg">0</b> ms</span> | <span>Aciertos: <b id="val-hits">0</b>/10</span>
+        <span>Paciente: <b id="val-pac">---</b></span> | 
+        <span>Promedio: <b id="val-avg">0</b> ms</span> | 
+        <span>Aciertos: <b id="val-hits">0</b>/10</span>
     </div>
-    <div id="game-canvas"><div id="target" class="target" onmousedown="acierto(event)"></div></div>
+
+    <div id="target" onmousedown="acierto()"></div>
 
     <script>
-        let paciente = "", startTime, times = [], hits = 0;
-        const target = document.getElementById('target');
+        let paciente = "", hits = 0, times = [], startTime;
 
-        function irAInstrucciones() {
+        function iniciarJuego() {
             paciente = document.getElementById('nombrePaciente').value.trim();
             if(!paciente) return alert("Ingrese el nombre");
             document.getElementById('setup-screen').style.display = 'none';
-            document.getElementById('instruction-screen').style.display = 'flex';
-        }
-
-        function comenzarJuego() {
-            document.getElementById('instruction-screen').style.display = 'none';
             document.getElementById('val-pac').innerText = paciente;
             aparecer();
         }
@@ -51,40 +65,55 @@
         function aparecer() {
             if (hits >= 10) return finalizarSesion();
             const x = Math.random() * (window.innerWidth - 100) + 50;
-            const y = Math.random() * (window.innerHeight - 180) + 50;
-            target.style.left = x + "px"; target.style.top = y + "px";
-            target.style.backgroundColor = `hsl(${Math.random() * 360}, 70%, 60%)`;
-            target.style.display = "none";
-            setTimeout(() => { target.style.display = "block"; startTime = Date.now(); }, Math.random() * 2000 + 500);
+            const y = Math.random() * (window.innerHeight - 180) + 120;
+            const t = document.getElementById('target');
+            t.style.left = x + "px"; t.style.top = y + "px";
+            t.style.backgroundColor = `hsl(${Math.random()*360}, 70%, 60%)`;
+            t.style.display = "none";
+            setTimeout(() => { t.style.display = "block"; startTime = Date.now(); }, Math.random()*2000 + 500);
         }
 
-        function acierto(e) {
-            e.stopPropagation();
-            times.push(Date.now() - startTime);
+        function acierto() {
+            const reaction = Date.now() - startTime;
+            times.push(reaction);
             hits++;
-            target.style.display = "none";
             document.getElementById('val-hits').innerText = hits;
-            document.getElementById('val-avg').innerText = Math.round(times.reduce((a, b) => a + b) / times.length);
+            document.getElementById('val-avg').innerText = Math.round(times.reduce((a,b)=>a+b)/times.length);
+            document.getElementById('target').style.display = "none";
             aparecer();
         }
 
         function finalizarSesion() {
-            const promedio = document.getElementById('val-avg').innerText + " ms";
-            const URL_FORM = "https://docs.google.com/forms/d/e/1FAIpQLScIgP6SFKo8ACneK7EdifzxCyl8haYU7LLIys1NxjIiUklkWA/formResponse";
+            const promedio = document.getElementById('val-avg').innerText;
             
-            const formData = new FormData();
-            formData.append("entry.1971645483", paciente);
-            formData.append("entry.1310127986", "Tiempo de Reacción");
-            formData.append("entry.1881234158", "Finalizado");
-            formData.append("entry.2029359389", hits);
-            formData.append("entry.2036354186", "0");
-            formData.append("entry.934609722", promedio);
-            formData.append("entry.143370750", new Date().toLocaleDateString());
+            // 1. Guardar Local
+            let h = JSON.parse(localStorage.getItem('h_reaccion') || "[]");
+            h.push({f: new Date().toLocaleDateString(), p: paciente, a: promedio});
+            localStorage.setItem('h_reaccion', JSON.stringify(h));
 
-            fetch(URL_FORM, { method: "POST", mode: "no-cors", body: formData })
-            .then(() => { alert("Datos enviados. Promedio: " + promedio); location.reload(); });
+            // 2. Enviar Google Sheets
+            const URL_FORM = "https://docs.google.com/forms/d/e/1FAIpQLScIgP6SFKo8ACneK7EdifzxCyl8haYU7LLIys1NxjIiUklkWA/formResponse";
+            const fd = new FormData();
+            fd.append("entry.1971645483", paciente);
+            fd.append("entry.1310127986", "Tiempo de Reacción");
+            fd.append("entry.2029359389", "10");
+            fd.append("entry.934609722", promedio + " ms");
+            fd.append("entry.143370750", new Date().toLocaleDateString());
+            fetch(URL_FORM, { method: "POST", mode: "no-cors", body: fd });
+
+            alert("Sesión finalizada. Promedio: " + promedio + "ms. Datos guardados.");
+            location.reload();
         }
+
+        function abrirAdmin() {
+            if(prompt("Clave de acceso:") === "1234") {
+                document.getElementById('admin-panel').style.display = 'flex';
+                let h = JSON.parse(localStorage.getItem('h_reaccion') || "[]");
+                document.getElementById('cuerpoTabla').innerHTML = h.reverse().map(d => 
+                    `<tr><td>${d.f}</td><td>${d.p}</td><td>${d.a} ms</td></tr>`).join('');
+            }
+        }
+        function cerrarAdmin() { document.getElementById('admin-panel').style.display = 'none'; }
     </script>
 </body>
 </html>
-
