@@ -5,21 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reacción Clínica - Terapia Visual</title>
     <style>
-        :root { --bg: #0f172a; --accent: #38bdf8; --card: #1e293b; --error: #ef4444; }
+        :root { --bg: #0f172a; --accent: #38bdf8; --card: #1e293b; --error: #ef4444; --success: #22c55e; }
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg); color: white; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
         
-        /* Pantallas de interfaz */
-        #setup-screen, #instruction-screen, #msg-screen { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
+        /* Pantallas */
+        #setup-screen, #instruction-screen, #msg-screen, #next-level-screen { 
+            position: fixed; inset: 0; background: var(--bg); z-index: 2000; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            padding: 20px; text-align: center; 
+        }
+        
         .input-clinico { padding: 14px; font-size: 1.1rem; border-radius: 10px; border: 2px solid var(--accent); background: var(--card); color: white; margin: 10px; width: 300px; outline: none; }
         .config-box { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid #334155; margin-top: 15px; width: 300px; }
         .slider { width: 100%; cursor: pointer; accent-color: var(--accent); }
-        .btn-grande { background: var(--accent); color: #0f172a; padding: 15px 40px; border-radius: 12px; font-size: 1.4rem; font-weight: bold; cursor: pointer; border: none; margin-top: 20px; }
+        .btn-grande { background: var(--accent); color: #0f172a; padding: 15px 40px; border-radius: 12px; font-size: 1.4rem; font-weight: bold; cursor: pointer; border: none; margin-top: 20px; transition: 0.2s; }
+        .btn-grande:hover { transform: scale(1.05); filter: brightness(1.1); }
         
-        /* Cabecera de estadísticas */
+        /* Estadísticas */
         .header-clinico { width: 100%; background: rgba(30, 41, 59, 0.9); padding: 15px; border-bottom: 2px solid var(--accent); display: flex; justify-content: space-around; font-size: 0.9rem; z-index: 10; box-sizing: border-box; }
         .stat-val { font-size: 1.2rem; font-weight: bold; color: var(--accent); display: block; }
         
-        /* Área de juego y objetivo */
+        /* Juego */
         #game-area { position: absolute; top: 80px; bottom: 0; left: 0; right: 0; z-index: 1; cursor: crosshair; }
         #target { position: absolute; width: 85px; height: 85px; border-radius: 50%; display: none; cursor: pointer; transform: translate(-50%, -50%); border: 3px solid white; z-index: 5; box-shadow: 0 0 25px rgba(255,255,255,0.3); }
     </style>
@@ -41,16 +47,22 @@
     <div id="instruction-screen" style="display:none">
         <h2 style="color:var(--accent)">¡Hola! Vamos a empezar</h2>
         <p style="max-width: 450px; line-height: 1.6; font-size: 1.1rem;">
-            Tu objetivo es tocar los círculos de colores <br><b>lo más rápido que puedas</b>.<br><br>
-            Cada nivel será más veloz. <br>Si tocas fuera del círculo, contará como <br><span style="color:var(--error)">fallo de precisión</span>.
+            Toca los círculos lo más rápido que puedas.<br><br>
+            Si tocas fuera del círculo, contará como <br><span style="color:var(--error)">fallo de precisión</span>.
         </p>
-        <button class="btn-grande" onclick="comenzarJuego()">¡Estoy Listo!</button>
+        <button class="btn-grande" onclick="comenzarJuego()">¡Empezar!</button>
+    </div>
+
+    <div id="next-level-screen" style="display:none">
+        <h2 style="color:var(--success)">¡Nivel Completado!</h2>
+        <p id="stats-intermedias" style="font-size: 1.1rem;"></p>
+        <button class="btn-grande" onclick="proximoNivel()">Siguiente Nivel</button>
     </div>
 
     <div id="msg-screen" style="display:none">
-        <h1 style="color:var(--accent)">¡Buen trabajo!</h1>
+        <h1 style="color:var(--accent)">Sesión Finalizada</h1>
         <p id="msg-subtitulo" style="font-size: 1.2rem; line-height: 1.8; white-space: pre-wrap;"></p>
-        <button class="btn-grande" onclick="location.reload()">Cerrar y Reiniciar</button>
+        <button class="btn-grande" onclick="location.reload()">Reiniciar</button>
     </div>
 
     <div class="header-clinico">
@@ -72,7 +84,7 @@
         function mostrarInstrucciones() {
             paciente = document.getElementById('nombrePaciente').value.trim();
             tiempoExposicionBase = document.getElementById('tiempoSlider').value * 1000;
-            if(!paciente) return alert("Por favor, introduce el nombre del paciente");
+            if(!paciente) return alert("Por favor, introduce el nombre");
             document.getElementById('setup-screen').style.display = 'none';
             document.getElementById('instruction-screen').style.display = 'flex';
         }
@@ -87,26 +99,23 @@
         function lanzarObjetivo() {
             estaActivo = false;
             document.getElementById('target').style.display = 'none';
-            const tLimite = Math.max(500, tiempoExposicionBase - ((nivel-1) * 200));
+            const tLimite = Math.max(400, tiempoExposicionBase - ((nivel-1) * 250));
 
             waitTimer = setTimeout(() => {
                 const x = Math.random() * (window.innerWidth - 120) + 60;
                 const y = Math.random() * (window.innerHeight - 250) + 180;
                 const t = document.getElementById('target');
                 t.style.left = x + 'px'; t.style.top = y + 'px';
-                
-                // Círculos de colores vibrantes
                 t.style.backgroundColor = `hsl(${Math.random()*360}, 75%, 55%)`;
-                
                 t.style.display = 'block';
                 estaActivo = true;
                 startTime = Date.now();
-                gameTimer = setTimeout(() => { finalizarJuego(); }, tLimite);
-            }, 800 + Math.random() * 1000);
+                gameTimer = setTimeout(() => { finalizarYEnviar(); }, tLimite);
+            }, 800 + Math.random() * 800);
         }
 
         function registrarAcierto(e) {
-            e.stopPropagation(); // Evita que cuente como fallo al acertar
+            e.stopPropagation();
             if(!estaActivo) return;
             clearTimeout(gameTimer);
             estaActivo = false;
@@ -119,32 +128,36 @@
             document.getElementById('target').style.display = 'none';
             
             if(aciertosNivel >= 5) {
-                nivel++;
-                aciertosNivel = 0;
-                document.getElementById('val-nivel').innerText = nivel;
+                juegoIniciado = false;
+                document.getElementById('stats-intermedias').innerText = `Has completado el nivel ${nivel}\nPromedio actual: ${document.getElementById('val-avg').innerText}ms`;
+                document.getElementById('next-level-screen').style.display = 'flex';
+            } else {
+                lanzarObjetivo();
             }
+        }
+
+        function proximoNivel() {
+            nivel++;
+            aciertosNivel = 0;
+            document.getElementById('val-nivel').innerText = nivel;
+            document.getElementById('next-level-screen').style.display = 'none';
+            juegoIniciado = true;
             lanzarObjetivo();
         }
 
         function registrarFalsoPositivo(e) {
             if(!juegoIniciado || !estaActivo) return;
-            
             erroresTotales++;
             document.getElementById('val-err').innerText = erroresTotales;
-            
-            // Efecto visual de error (parpadeo rojo)
             document.body.style.backgroundColor = "#451a1a";
             setTimeout(() => document.body.style.backgroundColor = "#0f172a", 100);
         }
 
-        function finalizarJuego() {
-            juegoIniciado = false; 
-            estaActivo = false;
-            clearTimeout(waitTimer);
+        function finalizarYEnviar() {
+            juegoIniciado = false; estaActivo = false;
             const promedio = document.getElementById('val-avg').innerText + " ms";
-
-            // ENVÍO AL FORMULARIO (IDs actualizados del enlace compartido)
             const URL_FORM = "https://docs.google.com/forms/d/e/1FAIpQLSfL1u3T8Xqn_pEEhQlnjJmoCu5DOLnQc0ixRLtba8WgLnniyw/formResponse";
+            
             const fd = new FormData();
             fd.append("entry.565202054", paciente);
             fd.append("entry.276239328", "Tiempo visual de reacción");
@@ -156,8 +169,7 @@
 
             fetch(URL_FORM, { method: "POST", mode: "no-cors", body: fd });
 
-            // Pantalla final
-            document.getElementById('msg-subtitulo').innerText = `Paciente: ${paciente}\nNivel Alcanzado: ${nivel}\nFallos de Precisión: ${erroresTotales}\nReacción Promedio: ${promedio}`;
+            document.getElementById('msg-subtitulo').innerText = `Paciente: ${paciente}\nNivel: ${nivel}\nTotal Aciertos: ${aciertosTotales}\nFallos de Precisión: ${erroresTotales}\nPromedio: ${promedio}`;
             document.getElementById('msg-screen').style.display = 'flex';
         }
     </script>
