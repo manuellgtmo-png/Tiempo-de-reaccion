@@ -7,69 +7,69 @@
     <style>
         :root { --bg: #0f172a; --accent: #38bdf8; --card: #1e293b; --error: #ef4444; }
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg); color: white; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
+        
         #setup-screen, #instruction-screen, #msg-screen { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
         .input-clinico { padding: 14px; font-size: 1.1rem; border-radius: 10px; border: 2px solid var(--accent); background: var(--card); color: white; margin: 10px; width: 300px; outline: none; }
         .config-box { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid #334155; margin-top: 15px; width: 300px; }
         .slider { width: 100%; cursor: pointer; accent-color: var(--accent); }
         .btn-grande { background: var(--accent); color: #0f172a; padding: 15px 40px; border-radius: 12px; font-size: 1.4rem; font-weight: bold; cursor: pointer; border: none; margin-top: 20px; }
+        
         .header-clinico { width: 100%; background: rgba(30, 41, 59, 0.9); padding: 15px; border-bottom: 2px solid var(--accent); display: flex; justify-content: space-around; font-size: 0.9rem; z-index: 10; box-sizing: border-box; }
         .stat-val { font-size: 1.2rem; font-weight: bold; color: var(--accent); display: block; }
-        #target { position: absolute; width: 85px; height: 85px; border-radius: 50%; display: none; cursor: pointer; transform: translate(-50%, -50%); box-shadow: 0 0 30px rgba(56, 189, 248, 0.4); border: 3px solid white; z-index: 5; }
+        
+        #game-area { position: relative; width: 100vw; height: calc(100vh - 80px); cursor: crosshair; }
+        #target { position: absolute; width: 85px; height: 85px; border-radius: 50%; display: none; cursor: pointer; transform: translate(-50%, -50%); box-shadow: 0 0 30px rgba(255, 255, 255, 0.2); border: 3px solid white; z-index: 5; }
     </style>
 </head>
 <body onmousedown="registrarFalsoPositivo(event)">
 
-    <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
-    <form id="google-form" action="https://docs.google.com/forms/d/e/1FAIpQLScIgP6SFKo8ACneK7EdifzxCyl8haYU7LLIys1NxjIiUklkWA/formResponse" method="POST" target="hidden_iframe" style="display:none;">
-        <input type="hidden" name="entry.1971645483" id="f-paciente">
-        <input type="hidden" name="entry.1310127986" value="Tiempo de Reacción">
-        <input type="hidden" name="entry.1881234158" id="f-nivel">
-        <input type="hidden" name="entry.2029359389" id="f-aciertos">
-        <input type="hidden" name="entry.2036354186" id="f-fallos">
-        <input type="hidden" name="entry.934609722" id="f-tiempo">
-        <input type="hidden" name="entry.143370750" id="f-fecha">
-    </form>
-
     <div id="setup-screen">
-        <h1 style="color:var(--accent)">TIEMPO DE REACCIÓN</h1>
+        <h1 style="color:var(--accent); font-size: 2.5rem; margin-bottom: 10px;">TIEMPO DE REACCIÓN</h1>
+        <p style="color: #94a3b8; margin-bottom: 20px;">Módulo de Estimulación Neuro-Visual</p>
         <input type="text" id="nombrePaciente" class="input-clinico" placeholder="Nombre del Paciente">
         <div class="config-box">
-            <label>Exposición Inicial:</label>
-            <input type="range" id="tiempoSlider" class="slider" min="2" max="5" step="0.5" value="2.5" oninput="document.getElementById('labelT').innerText=this.value">
-            <p><span id="labelT">2.5</span> segundos</p>
+            <label style="font-weight: bold;">Tiempo de exposición inicial:</label>
+            <input type="range" id="tiempoSlider" class="slider" min="2" max="5" step="0.5" value="2.5" oninput="document.getElementById('labelT').innerText=parseFloat(this.value).toFixed(1)">
+            <p><span id="labelT" style="color:var(--accent); font-size: 1.2rem; font-weight: bold;">2.5</span> segundos</p>
         </div>
         <button class="btn-grande" onclick="mostrarInstrucciones()">Continuar</button>
     </div>
 
     <div id="instruction-screen" style="display:none">
-        <h2>¡Hola! Vamos a empezar</h2>
-        <p>Toca los círculos lo más rápido que puedas.</p>
-        <button class="btn-grande" onclick="comenzarJuego()">¡Empezar!</button>
+        <h2 style="color:var(--accent)">¡Hola! Vamos a empezar</h2>
+        <p style="max-width: 450px; line-height: 1.6; font-size: 1.1rem;">
+            Tu objetivo es tocar los círculos de colores <br><b>lo más rápido que puedas</b>.<br><br>
+            Cada nivel será más veloz. <br>Si el círculo desaparece antes de tocarlo, <br>la sesión terminará.
+        </p>
+        <button class="btn-grande" onclick="comenzarJuego()">¡Estoy Listo!</button>
     </div>
 
     <div id="msg-screen" style="display:none">
-        <h1 id="msg-titulo">Sesión Finalizada</h1>
-        <p id="msg-subtitulo"></p>
-        <button class="btn-grande" onclick="location.reload()">Reiniciar</button>
+        <h1 id="msg-titulo" style="color:var(--accent)">¡Buen trabajo!</h1>
+        <p id="msg-subtitulo" style="font-size: 1.2rem; line-height: 1.8; white-space: pre-wrap;"></p>
+        <button class="btn-grande" onclick="location.reload()">Reiniciar Sesión</button>
     </div>
 
     <div class="header-clinico">
-        <div><span>Paciente</span><span id="val-pac">---</span></div>
-        <div><span>Nivel</span><span id="val-nivel">1</span></div>
-        <div><span>Fallos</span><span id="val-err" style="color:var(--error)">0</span></div>
-        <div><span>Promedio</span><span id="val-avg">0</span>ms</div>
+        <div><span>Paciente</span><span id="val-pac" class="stat-val">---</span></div>
+        <div><span>Nivel</span><span id="val-nivel" class="stat-val">1</span></div>
+        <div><span>Fallos</span><span id="val-err" style="color:var(--error)" class="stat-val">0</span></div>
+        <div><span>Promedio</span><span id="val-avg" class="stat-val">0</span><small>ms</small></div>
     </div>
 
-    <div id="target" onmousedown="registrarAcierto(event)"></div>
+    <div id="game-area">
+        <div id="target" onmousedown="registrarAcierto(event)"></div>
+    </div>
 
     <script>
-        let paciente = "", nivel = 1, aciertosNivel = 0, aciertosTotales = 0, erroresTotales = 0, times = [], startTime, gameTimer, waitTimer, juegoIniciado = false, estaActivo = false;
+        let paciente = "", nivel = 1, aciertosNivel = 0, aciertosTotales = 0, erroresTotales = 0;
+        let times = [], startTime, gameTimer, waitTimer, juegoIniciado = false, estaActivo = false;
         let tiempoExposicionBase = 2500;
 
         function mostrarInstrucciones() {
             paciente = document.getElementById('nombrePaciente').value.trim();
             tiempoExposicionBase = document.getElementById('tiempoSlider').value * 1000;
-            if(!paciente) return alert("Ingrese nombre");
+            if(!paciente) return alert("Por favor, introduce el nombre del paciente");
             document.getElementById('setup-screen').style.display = 'none';
             document.getElementById('instruction-screen').style.display = 'flex';
         }
@@ -87,53 +87,75 @@
             estaActivo = false;
             document.getElementById('target').style.display = 'none';
             const tLimite = Math.max(500, tiempoExposicionBase - ((nivel-1) * 200));
+
             waitTimer = setTimeout(() => {
                 const x = Math.random() * (window.innerWidth - 120) + 60;
                 const y = Math.random() * (window.innerHeight - 250) + 180;
                 const t = document.getElementById('target');
                 t.style.left = x + 'px'; t.style.top = y + 'px';
+                
+                // CÍRCULOS DE COLORES RECUPERADOS
+                t.style.backgroundColor = `hsl(${Math.random()*360}, 70%, 60%)`;
+                
                 t.style.display = 'block';
                 estaActivo = true;
                 startTime = Date.now();
                 gameTimer = setTimeout(() => { finalizarJuego(); }, tLimite);
-            }, 1000);
+            }, 800 + Math.random() * 1000);
         }
 
         function registrarAcierto(e) {
-            e.stopPropagation();
+            e.stopPropagation(); // Evita que cuente como fallo al tocar el círculo
             if(!estaActivo) return;
             clearTimeout(gameTimer);
             estaActivo = false;
             times.push(Date.now() - startTime);
             aciertosNivel++; aciertosTotales++;
+            
             document.getElementById('val-avg').innerText = Math.round(times.reduce((a,b)=>a+b)/times.length);
             document.getElementById('target').style.display = 'none';
-            if(aciertosNivel >= 5) { nivel++; document.getElementById('val-nivel').innerText = nivel; iniciarNivel(); } else { lanzarObjetivo(); }
+            
+            if(aciertosNivel >= 5) {
+                nivel++;
+                document.getElementById('val-nivel').innerText = nivel;
+                iniciarNivel();
+            } else {
+                lanzarObjetivo();
+            }
         }
 
-        function registrarFalsoPositivo() {
-            if(!juegoIniciado || estaActivo === false) return;
+        function registrarFalsoPositivo(e) {
+            // Si el juego no ha empezado o el clic fue en la cabecera, no hace nada
+            if(!juegoIniciado || e.clientY < 80) return;
+            
             erroresTotales++;
             document.getElementById('val-err').innerText = erroresTotales;
+            
+            // Efecto visual de error
+            document.body.style.backgroundColor = "#2d1a1a";
+            setTimeout(() => document.body.style.backgroundColor = "#0f172a", 100);
         }
 
         function finalizarJuego() {
             juegoIniciado = false; estaActivo = false;
             clearTimeout(waitTimer);
-            
-            // Llenar formulario oculto
-            document.getElementById('f-paciente').value = paciente;
-            document.getElementById('f-nivel').value = nivel;
-            document.getElementById('f-aciertos').value = aciertosTotales;
-            document.getElementById('f-fallos').value = erroresTotales;
-            document.getElementById('f-tiempo').value = document.getElementById('val-avg').innerText + " ms";
-            document.getElementById('f-fecha').value = new Date().toLocaleDateString();
+            const promedio = document.getElementById('val-avg').innerText + " ms";
 
-            // ENVIAR
-            document.getElementById('google-form').submit();
+            // ENVÍO AL EXCEL (Ajustado a tus IDs confirmados)
+            const URL_FORM = "https://docs.google.com/forms/d/e/1FAIpQLScIgP6SFKo8ACneK7EdifzxCyl8haYU7LLIys1NxjIiUklkWA/formResponse";
+            const fd = new FormData();
+            fd.append("entry.1971645483", paciente);
+            fd.append("entry.1310127986", "Reaccion");
+            fd.append("entry.1881234158", nivel);
+            fd.append("entry.2029359389", aciertosTotales);
+            fd.append("entry.2036354186", erroresTotales);
+            fd.append("entry.934609722", promedio);
+            fd.append("entry.143370750", new Date().toLocaleDateString());
 
-            // UI final
-            document.getElementById('msg-subtitulo').innerText = `Paciente: ${paciente}\nNivel Alcanzado: ${nivel}\nFallos: ${erroresTotales}`;
+            fetch(URL_FORM, { method: "POST", mode: "no-cors", body: fd });
+
+            // Mostrar resultados
+            document.getElementById('msg-subtitulo').innerText = `Paciente: ${paciente}\nNivel Alcanzado: ${nivel}\nAciertos Totales: ${aciertosTotales}\nFalsos Positivos: ${erroresTotales}\nReacción Promedio: ${promedio}`;
             document.getElementById('msg-screen').style.display = 'flex';
         }
     </script>
