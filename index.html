@@ -8,7 +8,6 @@
         :root { --bg: #0a0f1d; --pink: #ff2e63; --blue: #08d9d6; }
         body { margin: 0; font-family: 'Montserrat'; background: var(--bg); color: white; overflow: hidden; height: 100vh; }
         
-        /* Panel Administrativo */
         #admin-bar { display: none; background: var(--blue); color: #0a0f1d; padding: 10px 20px; justify-content: space-between; align-items: center; font-weight: bold; position: fixed; top: 0; width: 100%; z-index: 3000; box-sizing: border-box; }
         .btn-view { background: #0a0f1d; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; }
 
@@ -27,6 +26,9 @@
         .card { background: white; color: #2d3436; border-radius: 40px; padding: 35px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 15px 0 var(--blue); position: relative; }
         .btn { background: var(--pink); color: white; padding: 18px; border-radius: 20px; font-weight: 900; border: none; cursor: pointer; width: 100%; font-size: 1.2rem; margin-top: 15px; box-shadow: 0 8px 0 #b31d45; }
         
+        .habilidades { text-align: left; background: #f1f2f6; padding: 15px; border-radius: 15px; margin: 15px 0; font-size: 0.8rem; color: #555; }
+        .habilidades b { color: var(--pink); }
+
         #flash { position: fixed; inset: 0; background: rgba(255, 46, 99, 0.4); pointer-events: none; opacity: 0; z-index: 4000; }
         @keyframes errorFlash { 0% { opacity: 1; } 100% { opacity: 0; } }
     </style>
@@ -44,7 +46,14 @@
     <div class="card">
         <button style="position:absolute; top:20px; right:20px; background:none; border:none; opacity:0.3; cursor:pointer;" onclick="activarAdmin()">⚙️</button>
         <h2 id="msg-bienvenida" style="color:var(--bg)">Cargando...</h2>
-        <p style="color:#666">Toca los objetivos azules lo más rápido posible. No toques fuera del círculo.</p>
+        
+        <div class="habilidades">
+            <b>HABILIDADES A TRABAJAR:</b><br>
+            • Velocidad de Procesamiento Visual<br>
+            • Coordinación Ojo-Mano (Visomotora)<br>
+            • Tiempo de Reacción Simple y Periférico
+        </div>
+
         <button class="btn" onclick="startGame()">INICIAR TEST</button>
     </div>
 </div>
@@ -67,7 +76,6 @@
 <div id="game-area" onclick="failClick()"></div>
 
 <script>
-    // Conexión con el portal
     const paciente = localStorage.getItem('paciente') || "Paciente Prueba";
     const profesional = localStorage.getItem('profesional') || "General";
     document.getElementById('msg-bienvenida').innerText = "Hola, " + paciente;
@@ -75,9 +83,24 @@
     let nivel = 1, totalAciertos = 0, aciertosNivel = 0, vidas = 3, rachaNiveles = 0;
     let tiempoAparicion, jugando = false, spawnTimer;
     
+    // SISTEMA DE SONIDO
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playSuccessSound() {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.type = "sine"; 
+        osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1000, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+    }
+
     function activarAdmin() { if(prompt("Clave:") === "1234") document.getElementById('admin-bar').style.display = 'flex'; }
 
     function startGame() {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
         document.getElementById('screen-start').style.display = 'none';
         jugando = true;
         iniciarNivel();
@@ -97,23 +120,20 @@
         
         const target = document.createElement('div');
         target.className = "target";
-        
-        // El círculo se encoge según sube el nivel
         const size = Math.max(35, 110 - (nivel * 7));
         target.style.width = size + "px";
         target.style.height = size + "px";
         
-        // Posición aleatoria
         const x = Math.random() * (window.innerWidth - size - 20);
         const y = Math.random() * (window.innerHeight - 150 - size);
         target.style.left = x + "px";
         target.style.top = y + "px";
         
-        // Tiempo de exposición (se reduce drásticamente con el nivel)
         const timeLimit = Math.max(550, 2200 - (nivel * 180));
         
         target.onclick = (e) => {
             e.stopPropagation();
+            playSuccessSound(); // ¡Sonido activado!
             const reaccion = Date.now() - tiempoAparicion;
             document.getElementById('txt-speed').innerText = reaccion + "ms";
             totalAciertos++;
@@ -121,7 +141,7 @@
             document.getElementById('txt-ok').innerText = totalAciertos;
             
             clearTimeout(spawnTimer);
-            if(aciertosNivel >= 6) { // 6 aciertos para pasar de nivel
+            if(aciertosNivel >= 6) {
                 subirNivel();
             } else {
                 setTimeout(spawnTarget, 400);
@@ -131,7 +151,6 @@
         area.appendChild(target);
         tiempoAparicion = Date.now();
         
-        // Si el tiempo se agota, cuenta como fallo
         spawnTimer = setTimeout(() => {
             if(jugando) failClick();
         }, timeLimit);
@@ -142,8 +161,6 @@
         vidas--;
         rachaNiveles = 0;
         document.getElementById('txt-vidas').innerText = vidas;
-        
-        // Efecto visual de error
         document.getElementById('flash').style.animation = "none"; document.getElementById('flash').offsetHeight; 
         document.getElementById('flash').style.animation = "errorFlash 0.4s";
         
@@ -158,7 +175,7 @@
     function subirNivel() {
         nivel++;
         rachaNiveles++;
-        if(rachaNiveles >= 10) { // Regalo de vida por racha
+        if(rachaNiveles >= 10) {
             vidas++;
             rachaNiveles = 0;
         }
@@ -197,14 +214,12 @@
         iframe.name = "hidden_iframe"; iframe.style.display = "none";
         document.body.appendChild(iframe); document.body.appendChild(form);
         form.submit();
-        
-        setTimeout(() => { 
-            document.getElementById('status-envio').innerText = "✅ REPORTE GUARDADO EN EXCEL"; 
-        }, 2000);
+        setTimeout(() => { document.getElementById('status-envio').innerText = "✅ REPORTE GUARDADO EN EXCEL"; }, 2000);
     }
 </script>
 </body>
 </html>
+
 
 
 
