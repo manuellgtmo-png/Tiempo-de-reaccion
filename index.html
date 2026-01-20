@@ -12,7 +12,6 @@
         }
         body { margin: 0; font-family: 'Montserrat'; background: var(--bg); color: var(--primary); overflow: hidden; height: 100vh; }
         
-        /* Header Stats */
         .header { height: 80px; background: #1e293b; display: flex; justify-content: space-around; align-items: center; border-bottom: 4px solid var(--pink); }
         .stat { text-align: center; }
         .stat b { display: block; color: var(--blue); font-size: 0.7rem; text-transform: uppercase; }
@@ -20,7 +19,6 @@
 
         #game-area { height: calc(100vh - 80px); position: relative; cursor: crosshair; overflow: hidden; }
         
-        /* Estímulo Visual */
         #target { 
             position: absolute; border-radius: 50%; background: radial-gradient(circle, #2dd4bf, #0d9488);
             box-shadow: 0 0 30px rgba(45, 212, 191, 0.6); border: 3px solid white;
@@ -28,7 +26,6 @@
         }
         #target:active { transform: scale(0.9); }
 
-        /* Overlays */
         .overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
         .card { background: #1e293b; border-radius: 40px; padding: 40px; width: 100%; max-width: 450px; text-align: center; border: 1px solid #334155; }
         
@@ -48,7 +45,7 @@
 <div id="screen-start" class="overlay">
     <div class="card">
         <h1 style="color:var(--blue); margin:0; font-size: 2.5rem;">¡HOLA! ⚡</h1>
-        <h2 id="saludo-paciente" style="margin-top:0;">Tiempo de Reacción</h2>
+        <h2 id="saludo-paciente" style="margin-top:0; color:white;">Tiempo de Reacción</h2>
         <div class="habilidades">
             <h4>🎯 OBJETIVOS DE HOY:</h4>
             <p>• Agilizar la respuesta motora visual.<br>• Entrenar la visión periférica.<br>• Mejorar la coordinación ojo-mano.</p>
@@ -61,10 +58,9 @@
     <div class="card">
         <h2 style="color:var(--yellow);">¿CÓMO JUGAR?</h2>
         <div style="text-align: left; color: #cbd5e1; font-size: 0.95rem; line-height: 1.6;">
-            <p>1. Aparecerá un círculo brillante en la pantalla.</p>
-            <p>2. Tócalo lo **más rápido posible** antes de que desaparezca.</p>
-            <p>3. Evita tocar fuera del círculo.</p>
-            <p style="color: var(--pink);">⚠️ Tienes 2 vidas. ¡La velocidad aumenta cada nivel!</p>
+            <p>1. Toca el círculo lo <b>más rápido posible</b>.</p>
+            <p>2. ¡Cuidado! Si no lo tocas a tiempo o fallas, pierdes una vida.</p>
+            <p style="color: var(--pink);">❤️ Tienes 2 vidas. Cada 6 niveles recibes una extra.</p>
         </div>
         <button class="btn" onclick="iniciarJuego()" style="margin-top:20px; background: var(--success); box-shadow: 0 8px 0 #065f46;">¡ENTENDIDO!</button>
     </div>
@@ -73,16 +69,16 @@
 <div id="screen-next" class="overlay" style="display:none">
     <div class="card">
         <h1 style="color:var(--success)">¡MUY RÁPIDO! 🚀</h1>
-        <p id="msg-stats-nivel" style="font-size: 1.2rem;"></p>
+        <p id="msg-stats-nivel" style="font-size: 1.2rem; color: white;"></p>
         <button class="btn btn-next" onclick="proximoNivel()">CONTINUAR</button>
     </div>
 </div>
 
 <div id="screen-end" class="overlay" style="display:none">
     <div class="card">
-        <h1 style="color:var(--pink)">FIN DEL ENTRENAMIENTO</h1>
-        <p id="resumen-final" style="font-size: 1.1rem;"></p>
-        <div id="envio-status" style="margin:20px 0; font-weight:900; color:var(--blue);">🚀 ENVIANDO RESULTADOS...</div>
+        <h1 style="color:var(--pink)">SESIÓN TERMINADA</h1>
+        <p id="resumen-final" style="font-size: 1.1rem; color: white;"></p>
+        <div id="envio-status" style="margin:20px 0; font-weight:900; color:var(--blue);">🚀 SINCRONIZANDO EXCEL...</div>
         <button class="btn" onclick="location.href='index.html'" style="background:#475569; box-shadow: 0 8px 0 #1e293b;">SALIR</button>
     </div>
 </div>
@@ -101,16 +97,25 @@
 <iframe name="target_frame" style="display:none;"></iframe>
 
 <script>
-    // --- DATOS ADMINISTRATIVOS ---
+    // --- INTEGRACIÓN PANEL Y SONIDO ---
     const paciente = localStorage.getItem('paciente') || "Paciente";
     const profesional = localStorage.getItem('profesional') || "Especialista";
     document.getElementById('saludo-paciente').innerText = "¡Hola, " + paciente + "!";
 
-    // --- VARIABLES DE JUEGO ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function sonar(f, d, t='sine') {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+        o.type = t; o.frequency.setValueAtTime(f, audioCtx.currentTime);
+        g.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + d);
+        o.connect(g); g.connect(audioCtx.destination);
+        o.start(); o.stop(audioCtx.currentTime + d);
+    }
+
     let nivel = 1, aciertos = 0, fallos = 0, vidas = 2;
     let spawnTime, reactionTimes = [];
-    let gameActive = false;
-    let timerTarget;
+    let gameActive = false, timerTarget;
 
     function mostrarInstruccion() {
         document.getElementById('screen-start').style.display = 'none';
@@ -125,100 +130,77 @@
 
     function aparecerTarget() {
         if (!gameActive) return;
-
         const target = document.getElementById('target');
         const area = document.getElementById('game-area');
         
-        // Dificultad: el tamaño se reduce un poco y el tiempo de espera baja cada nivel
-        let size = Math.max(50, 100 - (nivel * 3));
-        let maxWait = Math.max(800, 2500 - (nivel * 150));
+        let size = Math.max(45, 100 - (nivel * 3));
+        let maxWait = Math.max(700, 2500 - (nivel * 150));
 
         const x = Math.random() * (area.clientWidth - size);
         const y = Math.random() * (area.clientHeight - size);
 
-        target.style.width = size + "px";
-        target.style.height = size + "px";
-        target.style.left = x + "px";
-        target.style.top = y + "px";
+        target.style.width = size + "px"; target.style.height = size + "px";
+        target.style.left = x + "px"; target.style.top = y + "px";
         target.style.display = "block";
-
         spawnTime = Date.now();
 
-        // Tiempo límite para tocarlo
         clearTimeout(timerTarget);
         timerTarget = setTimeout(() => {
-            if (target.style.display === "block") {
-                perderVida("¡Muy lento!");
-            }
+            if (target.style.display === "block") perderVida();
         }, maxWait);
     }
 
     function tocarTarget(e) {
         e.stopPropagation();
+        sonar(800, 0.1); // Sonido de acierto
         const reaction = Date.now() - spawnTime;
         reactionTimes.push(reaction);
         document.getElementById('txt-ms').innerText = reaction + "ms";
-        
         document.getElementById('target').style.display = "none";
         aciertos++;
         document.getElementById('txt-ok').innerText = aciertos;
 
-        // Cada 10 aciertos sube de nivel
         if (aciertos % 10 === 0) {
             gameActive = false;
-            document.getElementById('msg-stats-nivel').innerText = `Promedio: ${calcularPromedio()}ms`;
+            document.getElementById('msg-stats-nivel').innerText = `Tu promedio: ${calcularPromedio()}ms`;
             document.getElementById('screen-next').style.display = 'flex';
         } else {
-            setTimeout(aparecerTarget, Math.random() * 1000 + 500);
+            setTimeout(aparecerTarget, Math.random() * 800 + 400);
         }
     }
 
     function falloClickFuera(e) {
         if (!gameActive) return;
-        // Efecto visual de fallo
-        const ripple = document.createElement('div');
-        ripple.id = "click-effect";
-        ripple.style.left = e.clientX + "px";
-        ripple.style.top = (e.clientY - 80) + "px";
-        document.getElementById('game-area').appendChild(ripple);
-        setTimeout(() => ripple.remove(), 400);
-
-        perderVida("¡Click fuera!");
+        perderVida();
     }
 
-    function perderVida(motivo) {
-        vidas--;
-        fallos++;
+    function perderVida() {
+        sonar(200, 0.3, 'sawtooth'); // Sonido de fallo
+        vidas--; fallos++;
         document.getElementById('txt-vidas').innerText = vidas;
         document.getElementById('target').style.display = "none";
-
-        if (vidas <= 0) {
-            finalizarSesion();
-        } else {
-            setTimeout(aparecerTarget, 1500);
-        }
+        if (vidas <= 0) finalizarSesion();
+        else setTimeout(aparecerTarget, 1200);
     }
 
     function proximoNivel() {
         nivel++;
-        if (nivel % 6 === 0) vidas++; // Vida extra cada 6 niveles
+        if (nivel % 6 === 0) vidas++;
         document.getElementById('txt-nivel').innerText = nivel;
         document.getElementById('txt-vidas').innerText = vidas;
         document.getElementById('screen-next').style.display = 'none';
-        gameActive = true;
-        aparecerTarget();
+        gameActive = true; aparecerTarget();
     }
 
     function calcularPromedio() {
         if (reactionTimes.length === 0) return 0;
-        const suma = reactionTimes.reduce((a, b) => a + b, 0);
-        return (suma / reactionTimes.length).toFixed(0);
+        return (reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length).toFixed(0);
     }
 
     function finalizarSesion() {
         gameActive = false;
         const prom = calcularPromedio();
-        document.getElementById('resumen-final').innerText = `Nivel: ${nivel} | Aciertos: ${aciertos} | Reacción: ${prom}ms`;
+        document.getElementById('resumen-final').innerText = `Nivel: ${nivel} | Reacción Media: ${prom}ms`;
         document.getElementById('screen-end').style.display = 'flex';
         enviarExcel(prom);
     }
@@ -228,7 +210,6 @@
         form.method = "POST";
         form.action = "https://docs.google.com/forms/d/e/1FAIpQLSeLlcvlhrTSHDhvxctLghiM3caGsgBL2wdaT7nBxrz6UARwYg/formResponse";
         form.target = "target_frame";
-
         const datos = {
             "entry.369874016": paciente,
             "entry.1353470174": "Tiempo de Reacción (" + profesional + ")",
@@ -238,24 +219,21 @@
             "entry.1303309812": promedio + "ms",
             "entry.845098414": new Date().toISOString().split('T')[0]
         };
-
         for (let key in datos) {
             let input = document.createElement("input");
             input.type = "hidden"; input.name = key; input.value = datos[key];
             form.appendChild(input);
         }
-
-        document.body.appendChild(form);
-        form.submit();
-
+        document.body.appendChild(form); form.submit();
         setTimeout(() => {
-            document.getElementById('envio-status').innerText = "✅ SINCRONIZADO";
+            document.getElementById('envio-status').innerText = "✅ REGISTRADO EN EXCEL";
             document.getElementById('envio-status').style.color = "#10b981";
         }, 2000);
     }
 </script>
 </body>
 </html>
+
 
 
 
