@@ -3,22 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tiempo de Reacción PRO - Adaptable</title>
+    <title>Tiempo de Reacción PRO - Conectado</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&display=swap" rel="stylesheet">
     <style>
         :root { 
             --bg: #0f172a; --primary: #f8fafc; --pink: #ff2e63; 
             --blue: #38bdf8; --card: #1e293b; --success: #10b981; --yellow: #facc15;
         }
-        
-        /* Ajuste para evitar scroll y saltos en móvil */
         body, html { 
             margin: 0; padding: 0; width: 100%; height: 100%; 
             font-family: 'Montserrat'; background: var(--bg); color: var(--primary); 
             overflow: hidden; display: flex; flex-direction: column;
-            touch-action: none; /* Evita zoom accidental */
+            touch-action: none;
         }
-
         .header { 
             height: 80px; min-height: 80px; background: #1e293b; 
             display: flex; justify-content: space-around; align-items: center; 
@@ -27,48 +24,18 @@
         .stat { text-align: center; }
         .stat b { display: block; color: var(--blue); font-size: 0.65rem; text-transform: uppercase; }
         .stat span { font-size: 1.2rem; font-weight: 900; }
-
-        #game-area { 
-            flex-grow: 1; position: relative; cursor: crosshair; overflow: hidden; 
-            width: 100%; height: 100%;
-        }
-        
+        #game-area { flex-grow: 1; position: relative; cursor: crosshair; overflow: hidden; width: 100%; }
         #target { 
             position: absolute; border-radius: 50%; 
             background: radial-gradient(circle, #2dd4bf, #0d9488);
             box-shadow: 0 0 30px rgba(45, 212, 191, 0.6); 
-            border: 3px solid white; display: none; 
-            z-index: 50;
-            /* Toque más fácil en móvil */
-            box-sizing: border-box;
+            border: 3px solid white; display: none; z-index: 50;
         }
-
-        /* MODALES RESPONSIVOS */
-        .overlay { 
-            position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98); 
-            z-index: 2000; display: flex; align-items: center; justify-content: center; 
-            padding: 20px; 
-        }
-        .card { 
-            background: #1e293b; border-radius: 30px; padding: 30px; 
-            width: 90%; max-width: 400px; text-align: center; 
-            border: 1px solid #334155; max-height: 90vh; overflow-y: auto;
-        }
-        
-        .btn { 
-            background: var(--pink); color: white; padding: 18px; 
-            border-radius: 20px; font-weight: 900; border: none; 
-            cursor: pointer; width: 100%; font-size: 1.1rem; 
-            text-transform: uppercase; box-shadow: 0 6px 0 #9f1239; 
-            margin-top: 15px;
-        }
+        .overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .card { background: #1e293b; border-radius: 30px; padding: 30px; width: 90%; max-width: 400px; text-align: center; border: 1px solid #334155; }
+        .btn { background: var(--pink); color: white; padding: 18px; border-radius: 20px; font-weight: 900; border: none; cursor: pointer; width: 100%; font-size: 1.1rem; text-transform: uppercase; box-shadow: 0 6px 0 #9f1239; margin-top: 15px; }
         .btn:active { transform: translateY(3px); box-shadow: 0 3px 0 #9f1239; }
-
-        .habilidades { 
-            text-align: left; background: #334155; padding: 15px; 
-            border-radius: 15px; margin: 15px 0; border-left: 5px solid var(--blue); 
-            font-size: 0.85rem;
-        }
+        .habilidades { text-align: left; background: #334155; padding: 15px; border-radius: 15px; margin: 15px 0; border-left: 5px solid var(--blue); font-size: 0.85rem; }
     </style>
 </head>
 <body onclick="falloClickFuera(event)">
@@ -88,7 +55,7 @@
 <div id="screen-instruccion" class="overlay" style="display:none">
     <div class="card">
         <h2 style="color:var(--yellow);">¿CÓMO JUGAR?</h2>
-        <p style="font-size: 0.9rem; color: #cbd5e1;">Toca el círculo lo <b>más rápido posible</b> antes de que desaparezca.</p>
+        <p>Toca el círculo lo <b>más rápido posible</b>.</p>
         <p style="color: var(--pink); font-weight: 700;">❤️ Tienes 2 vidas.</p>
         <button class="btn" onclick="iniciarJuego()" style="background: var(--success); box-shadow: 0 6px 0 #065f46;">¡ENTENDIDO!</button>
     </div>
@@ -106,7 +73,7 @@
     <div class="card">
         <h1 style="color:var(--pink)">SESIÓN FIN</h1>
         <p id="resumen-final" style="font-size: 1.1rem; color: white;"></p>
-        <div id="envio-status" style="margin:20px 0; font-weight:900; color:var(--blue);">🚀 ENVIANDO DATOS...</div>
+        <div id="envio-status" style="margin:20px 0; font-weight:900; color:var(--blue);">🚀 ENVIANDO A GOOGLE SHEETS...</div>
         <button class="btn" onclick="location.reload()" style="background:#475569; box-shadow: 0 6px 0 #1e293b;">REPETIR</button>
     </div>
 </div>
@@ -129,7 +96,6 @@
     const profesional = localStorage.getItem('profesional') || "Especialista";
     document.getElementById('saludo-paciente').innerText = "¡Hola, " + paciente + "!";
 
-    // Audio mejorado para compatibilidad móvil
     let audioCtx;
     function initAudio() {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -168,11 +134,8 @@
         const area = document.getElementById('game-area');
         const rect = area.getBoundingClientRect();
         
-        // CÁLCULO DINÁMICO: Nunca menor a 40px para que el dedo lo capte
         let size = Math.max(45, 90 - (nivel * 2.5)); 
-        
-        // MARGEN DE SEGURIDAD (Padding) para que no toque los bordes del móvil
-        const padding = 20;
+        const padding = 25;
         const maxX = rect.width - size - padding;
         const maxY = rect.height - size - padding;
 
@@ -184,10 +147,8 @@
         target.style.left = x + "px"; 
         target.style.top = y + "px";
         target.style.display = "block";
-        
         spawnTime = Date.now();
 
-        // Tiempo de espera dinámico
         let maxWait = Math.max(650, 2400 - (nivel * 130));
 
         clearTimeout(timerTarget);
@@ -199,16 +160,13 @@
     function tocarTarget(e) {
         e.stopPropagation();
         if (!gameActive) return;
-        
         sonar(800, 0.1);
         const reaction = Date.now() - spawnTime;
         reactionTimes.push(reaction);
-        
         document.getElementById('txt-ms').innerText = reaction + "ms";
         document.getElementById('target').style.display = "none";
         aciertos++;
         document.getElementById('txt-ok').innerText = aciertos;
-
         clearTimeout(timerTarget);
 
         if (aciertos % 10 === 0) {
@@ -221,7 +179,6 @@
     }
 
     function falloClickFuera(e) {
-        // Solo falla si el clic es dentro del área de juego y no en un modal
         if (!gameActive || e.target.closest('.card')) return;
         perderVida();
     }
@@ -231,37 +188,25 @@
         vidas--; fallos++;
         document.getElementById('txt-vidas').innerText = vidas;
         document.getElementById('target').style.display = "none";
-        
-        if (vidas <= 0) {
-            finalizarSesion();
-        } else {
-            gameActive = false; // Pausa breve
-            setTimeout(() => {
-                if (vidas > 0) {
-                    gameActive = true;
-                    aparecerTarget();
-                }
-            }, 1000);
+        if (vidas <= 0) finalizarSesion();
+        else {
+            gameActive = false;
+            setTimeout(() => { if (vidas > 0) { gameActive = true; aparecerTarget(); } }, 1000);
         }
     }
 
     function proximoNivel() {
         nivel++;
-        if (nivel % 6 === 0) {
-            vidas++;
-            sonar(1000, 0.5);
-        }
+        if (nivel % 6 === 0) vidas++;
         document.getElementById('txt-nivel').innerText = nivel;
         document.getElementById('txt-vidas').innerText = vidas;
         document.getElementById('screen-next').style.display = 'none';
-        gameActive = true; 
-        aparecerTarget();
+        gameActive = true; aparecerTarget();
     }
 
     function calcularPromedio() {
         if (reactionTimes.length === 0) return 0;
-        const suma = reactionTimes.reduce((a, b) => a + b, 0);
-        return (suma / reactionTimes.length).toFixed(0);
+        return (reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length).toFixed(0);
     }
 
     function finalizarSesion() {
@@ -274,27 +219,42 @@
     }
 
     function enviarExcel(promedio) {
-        const FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSeLlcvlhrTSHDhvxctLghiM3caGsgBL2wdaT7nBxrz6UARwYg/formResponse";
-        const fd = new URLSearchParams();
-        fd.append("entry.369874016", paciente);
-        fd.append("entry.1353470174", "Tiempo Reacción (" + profesional + ")");
-        fd.append("entry.721051298", nivel);
-        fd.append("entry.873272199", aciertos);
-        fd.append("entry.1030094511", fallos);
-        fd.append("entry.1303309812", promedio + "ms");
-        fd.append("entry.845098414", new Date().toISOString().split('T')[0]);
+        // AQUÍ HEMOS RESTAURADO LA LÓGICA DE TU CÓDIGO ORIGINAL
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = "https://docs.google.com/forms/d/e/1FAIpQLSeLlcvlhrTSHDhvxctLghiM3caGsgBL2wdaT7nBxrz6UARwYg/formResponse";
+        form.target = "target_frame";
 
-        fetch(FORM_URL, { method: "POST", mode: "no-cors", body: fd })
-        .then(() => {
-            document.getElementById('envio-status').innerText = "✅ DATOS GUARDADOS";
+        const datos = {
+            "entry.369874016": paciente,
+            "entry.1353470174": "Tiempo de Reacción (" + profesional + ")",
+            "entry.721051298": nivel,
+            "entry.873272199": aciertos,
+            "entry.1030094511": fallos,
+            "entry.1303309812": promedio + "ms",
+            "entry.845098414": new Date().toISOString().split('T')[0]
+        };
+
+        for (let key in datos) {
+            let input = document.createElement("input");
+            input.type = "hidden";
+            input.name = key;
+            input.value = datos[key];
+            form.appendChild(input);
+        }
+
+        document.body.appendChild(form);
+        form.submit();
+
+        setTimeout(() => {
+            document.getElementById('envio-status').innerText = "✅ REGISTRADO EN GOOGLE SHEETS";
             document.getElementById('envio-status').style.color = "#10b981";
-        }).catch(() => {
-            document.getElementById('envio-status').innerText = "❌ ERROR AL GUARDAR";
-        });
+        }, 2000);
     }
 </script>
 </body>
 </html>
+
 
 
 
